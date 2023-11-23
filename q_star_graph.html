@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-Learning with A* on Graph</title>
+    <style>
+        #graph-container {
+            width: 100%; /* Adjust to fit the container */
+            margin: auto;
+            border: 2px solid black;
+            padding: 10px;
+            overflow: hidden; /* To handle larger graphs */
+        }
+    
+        svg {
+            width: 100%; /* Full width of the container */
+            height: 500px; /* Fixed height, can be adjusted */
+        }
+    
+        /* SVG-specific styles (if needed) */
+        /* For example, you can define styles for nodes and edges here */
+        circle {
+            /* Styles for nodes */
+        }
+    
+        line {
+            stroke-width: 2; /* Line thickness for edges */
+        }
+    
+        text {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            pointer-events: none; /* To prevent interference with node interaction */
+        }
+
+        path {
+            stroke-width: 2;
+            stroke: black;
+            fill: none;
+            marker-end: url(#arrowhead); /* Arrowhead for direction */
+            marker-start: url(#arrowhead);
+        }
+
+        .edge-path {
+            stroke: black;
+            stroke-width: 1;
+        }
+
+        .edge-path-highlighted {
+            stroke: green;
+            stroke-width: 3;
+        }
+
+
+    </style>    
+</head>
+<body>
+    <div id="graph-container"></div>
+    <button id="start-btn">Start Learning</button>
+    <script>
+      
+class Node {
+    constructor(id) {
+        this.id = id;
+    }
+
+    equals(other) {
+        return other !== null && this.id === other.id;
+    }
+}
+
+class Edge {
+    constructor(node1, node2, cost) {
+        this.node1 = node1;
+        this.node2 = node2;
+        this.cost = cost;
+    }
+}
+
+class Graph {
+    constructor() {
+        this.nodes = new Map();
+        this.edges = new Map();
+    }
+
+    addNode(node) {
+        this.nodes.set(node.id, node);
+        if (!this.edges.has(node.id)) {
+            this.edges.set(node.id, []);
+        }
+    }
+
+    addEdge(node1, node2, cost, directed = false) {
+        let actualNode1 = this.nodes.get(node1.id);
+        let actualNode2 = this.nodes.get(node2.id);
+
+        if (actualNode1 && actualNode2) {
+            this.edges.get(actualNode1.id).push(new Edge(actualNode1, actualNode2, cost));
+            if (!directed)
+                this.edges.get(actualNode2.id).push(new Edge(actualNode2, actualNode1, cost));
+        }
+    }
+
+    getNeighbors(node) {
+        return this.edges.get(node.id);
+    }
+    
+	discoverNewEdges(node, iteration, maxNodes) {
+        const existingNodeCount = this.nodes.size;
+        if (existingNodeCount >= maxNodes) {
+            return; // Stop adding new nodes if the limit is reached
+        }
+
+        // Reduced number of new edges over iterations
+        const decayRate = 0.95;
+        const maxNewEdges = Math.floor(3 * Math.pow(decayRate, iteration));
+        const newEdgesCount = Math.min(maxNewEdges, maxNodes - existingNodeCount);
+
+        for (let i = 0; i < newEdgesCount; i++) {
+            const newNode = new Node(`node${existingNodeCount + i}`);
+            this.addNode(newNode);
+            this.addEdge(node, newNode, Math.floor(Math.random() * 10) + 1);
+        }
+    }
+}
+
+class QLearning {
+    constructor(graph, alpha, gamma, startNode, endNode) {
+        this.graph = graph;
+        this.alpha = alpha;
+        this.gamma = gamma;
+        this.qTable = new Map();
+        this.startNode = startNode;
+        this.endNode = endNode;
+        this.maxQValue = -Infinity;
+        this.minQValue = Infinity;
+    }
+
+    getQValue(state, action) {
+        const key = JSON.stringify([state.id, action.id]);
+        return this.qTable.get(key) || 0;
+    }
+
+    setQValue(state, action, value) {
+        const key = JSON.stringify([state.id, action.id]);
+        this.qTable.set(key, value);
+
+        // Update max and min Q-values
+        this.maxQValue = Math.max(this.maxQValue, value);
+        this.minQValue = Math.min(this.minQValue, value);
+    }
+
+    learn(state, action, reward, nextState) {
+        const oldQValue = this.getQValue(state, action);
+        const maxFutureQ = Math.max(...this.graph.getNeighbors(nextState).map(edge => this.getQValue(nextState, edge.node2)));
+        const newQValue = oldQValue + this.alpha * (reward + this.gamma * maxFutureQ - oldQValue);
+        this.setQValue(state, action, newQValue);
+    }
+
+    aStarSearch() {
+      let openSet = new Set([this.startNode]);
+      let cameFrom = new Map();
+      let gScore = new Map([...this.graph.nodes.values()].map(node => [node.id, Infinity]));
+      let fScore = new Map([...this.graph.nodes.values()].map(node => [node.id, Infinity]));
+
+      gScore.set(this.startNode.id, 0);
+      fScore.set(this.startNode.id, this.heuristic(this.startNode, this.endNode));
+
+      while (openSet.size > 0) {
+          let current = [...openSet].reduce((a, b) => fScore.get(a.id) < fScore.get(b.id) ? a : b);
+
+          if (current.equals(this.endNode)) {
+              return this.reconstructPath(cameFrom, current);
+          }
+
+          openSet.delete(current);
+          this.graph.getNeighbors(current).forEach(edge => {
+              let neighbor = edge.node2;
+              let tentativeGScore = gScore.get(current.id) + edge.cost;
+              if (tentativeGScore < gScore.get(neighbor.id)) {
+                  cameFrom.set(neighbor.id, current);
+                  gScore.set(neighbor.id, tentativeGScore);
+                  fScore.set(neighbor.id, tentativeGScore + this.heuristic(neighbor, this.endNode));
+                  if (!openSet.has(neighbor)) {
+                      openSet.add(neighbor);
+                  }
+              }
+          });
+      }
+
+      return []; // Return an empty path if no path is found
+  	}
+
+    heuristic(node1, node2) {
+        // Calculate the normalized Q-value for the node
+        let qValue = this.getQValueForNode(node1);
+        let normalizedQValue = this.normalizeQValue(qValue);
+
+        // Optionally combine with a distance measure (e.g., Euclidean distance)
+        // let distance = calculateDistance(node1, node2);
+
+        // Form the heuristic as a combination of Q-value and distance
+        // return alpha * normalizedQValue + (1 - alpha) * distance;
+
+        // For simplicity, just using normalized Q-value for now
+        return normalizedQValue;
+    }
+
+
+    getQValueForNode(node) {
+        let maxQValue = Math.max(...this.graph.getNeighbors(node).map(edge => this.getQValue(node, edge.node2)));
+        return maxQValue;
+    }
+
+    normalizeQValue(qValue) {
+        // Normalize Q-value
+        if (this.maxQValue === this.minQValue) return 0; // Avoid division by zero
+        return (qValue - this.minQValue) / (this.maxQValue - this.minQValue);
+    }
+
+    reconstructPath(cameFrom, current) {
+        let totalPath = [current];
+        while (cameFrom.has(current.id)) {
+            current = cameFrom.get(current.id);
+            totalPath.unshift(current);
+        }
+        return totalPath;
+    }
+
+    run(maxNodes, maxIterationsWithoutPath) {
+        console.log("Starting Q-Learning with A*...");
+        let iterations = 0;
+        let iterationsWithoutPath = 0;
+
+        while (true) {
+            console.log(`Iteration ${iterations}`);
+            let path = this.aStarSearch();
+            
+            if (path.length === 0) {
+                console.log("No path found. Discovering new edges...");
+                this.graph.discoverNewEdges(this.startNode, iterations, maxNodes);
+                iterationsWithoutPath++;
+            } else {
+                console.log("Path found:", path.map(node => node.id));
+                // Reset the counter when a path is found
+                iterationsWithoutPath = 0;
+
+                for (let i = 0; i < path.length - 1; i++) {
+                    const state = path[i];
+                    const action = path[i + 1];
+                    const reward = state.equals(this.endNode) ? 100 : -1;
+                    this.learn(state, action, reward, state);
+                }
+            }
+
+            updateGraphVisualization(this.graph, path);
+            iterations++;
+
+            // Stopping conditions
+            if (iterationsWithoutPath >= maxIterationsWithoutPath) {
+                console.log("No path found for several iterations. Stopping.");
+                break;
+            }
+
+            if (path.includes(this.endNode)) {
+                console.log("Satisfactory path found. Ending Q-Learning.");
+                break;
+            }
+        }
+
+        console.log("Q-Learning completed.");
+    }
+}
+
+function updateGraphVisualization(graph, path) {
+    const container = document.getElementById('graph-container');
+    container.innerHTML = ''; // Clear previous content
+
+    // Create an SVG element
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '500px'); // Set a fixed height
+    container.appendChild(svg);
+
+    // Calculate positions for each node (example: simple grid layout)
+    const nodePositions = new Map();
+    let x = 50, y = 50, deltaX = 100, deltaY = 100;
+    graph.nodes.forEach(node => {
+        nodePositions.set(node.id, { x, y });
+        x += deltaX;
+        if (x > container.offsetWidth - 50) { x = 50; y += deltaY; }
+    });
+
+    console.log("Path for visualization:", path.map(node => node.id));
+
+    function isEdgeInPath(edge, path) {
+        for (let i = 0; i < path.length - 1; i++) {
+            if (edge.node1.equals(path[i]) && edge.node2.equals(path[i + 1])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    graph.edges.forEach((edges, nodeId) => {
+        edges.forEach(edge => {
+            const edgePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            const startPos = nodePositions.get(edge.node1.id);
+            const endPos = nodePositions.get(edge.node2.id);
+
+            // Create a curved path (simple quadratic bezier curve)
+            const midX = (startPos.x + endPos.x) / 2;
+            const midY = (startPos.y + endPos.y) / 2;
+            const curve = 80; // Curve intensity
+
+            const d = `M ${startPos.x} ${startPos.y} Q ${midX + curve} ${midY + curve}, ${endPos.x} ${endPos.y}`;
+            edgePath.setAttribute('d', d); // Rename variable
+            edgePath.setAttribute('stroke', 'black');
+            edgePath.setAttribute('fill', 'none');
+            svg.appendChild(edgePath);
+
+            if (isEdgeInPath(edge, path)) {
+                edgePath.classList.add('edge-path-highlighted');
+            } else {
+                edgePath.classList.add('edge-path');
+            }
+            svg.appendChild(edgePath);
+        });
+    });
+
+
+    // Add arrowheads
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+    marker.setAttribute('id', 'arrowhead');
+    marker.setAttribute('markerWidth', '10');
+    marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('refX', '0');
+    marker.setAttribute('refY', '3.5');
+    marker.setAttribute('orient', 'auto');
+    const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    arrowPath.setAttribute('d', 'M 0 0 L 10 3.5 L 0 7 z');
+    arrowPath.setAttribute('fill', 'black');
+    marker.appendChild(arrowPath);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    // Apply the marker to the paths
+    document.querySelectorAll('path').forEach(path => {
+        path.setAttribute('marker-end', 'url(#arrowhead)');
+    });
+
+    // Draw nodes
+    graph.nodes.forEach(node => {
+        const pos = nodePositions.get(node.id);
+        const nodeElem = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        nodeElem.setAttribute('cx', pos.x);
+        nodeElem.setAttribute('cy', pos.y);
+        nodeElem.setAttribute('r', 20); // radius of the node
+        nodeElem.setAttribute('fill', node.equals(qLearningAgent.startNode) ? 'lightgreen' : 
+                                      node.equals(qLearningAgent.endNode) ? 'red' : 
+                                      path.some(p => p.equals(node)) ? 'lightblue' : 'white');
+        nodeElem.setAttribute('stroke', 'black');
+
+        // Optional: Add text labels to nodes
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute('x', pos.x);
+        text.setAttribute('y', pos.y);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dy', '.3em'); // Adjust vertical alignment
+        text.textContent = node.id;
+
+        svg.appendChild(nodeElem);
+        svg.appendChild(text);
+
+        // Add order labels to nodes in the path
+        if (path.includes(node)) {
+            const order = path.indexOf(node) + 1;
+            const orderText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            orderText.setAttribute('x', pos.x);
+            orderText.setAttribute('y', pos.y + 30); // Position below the node
+            orderText.setAttribute('text-anchor', 'middle');
+            orderText.setAttribute('fill', 'black');
+            orderText.textContent = `#${order}`;
+            svg.appendChild(orderText);
+        }
+    });
+
+    function forceSvgRedraw(svg) {
+        const parentNode = svg.parentNode;
+        parentNode.removeChild(svg);
+        parentNode.appendChild(svg);
+    }
+
+    // Call this function after setting all attributes and appending all elements to the SVG
+    forceSvgRedraw(svg);
+
+}
+
+
+// Graph Initialization
+let graph = new Graph();
+const nodeCount = 50;
+let startNode = new Node('start');
+let endNode = new Node('end');
+graph.addNode(startNode);
+graph.addNode(endNode);
+
+// Create additional nodes
+for (let i = 0; i < nodeCount; i++) {
+    graph.addNode(new Node(`node${i}`));
+}
+
+// Randomly connect nodes to form a maze-like structure
+for (let i = 0; i < nodeCount; i++) {
+    let currentNode = graph.nodes.get(`node${i}`);
+    let randomNeighborIndex = Math.floor(Math.random() * nodeCount);
+    let randomNeighbor = graph.nodes.get(`node${randomNeighborIndex}`);
+
+    // Adding edge between current node and a random neighbor
+    graph.addEdge(currentNode, randomNeighbor, Math.floor(Math.random() * 10) + 1);
+
+    // Optionally, connect some nodes directly to start or end to ensure they are part of the graph
+    if (i % Math.floor(nodeCount / 10) === 0 && i !== 0) {
+        graph.addEdge(startNode, currentNode, Math.floor(Math.random() * 10) + 1);
+    }
+}
+
+// Ensure start and end nodes have at least one connection
+let randomStartNeighbor = graph.nodes.get(`node${Math.floor(Math.random() * nodeCount)}`);
+let randomEndNeighbor = graph.nodes.get(`node${Math.floor(Math.random() * nodeCount)}`);
+graph.addEdge(startNode, randomStartNeighbor, Math.floor(Math.random() * 10) + 1);
+graph.addEdge(endNode, randomEndNeighbor, Math.floor(Math.random() * 10) + 1);
+
+let maxNodes = 50; // Max number of nodes in the graph
+let maxIterationsWithoutPath = 10; // Max iterations without finding a path
+
+let qLearningAgent = new QLearning(graph, 0.1, 0.9, startNode, endNode);
+
+// Initial render of the graph
+updateGraphVisualization(graph, []);
+
+// Event listener setup
+document.getElementById('start-btn').addEventListener('click', () => {
+    qLearningAgent.run(maxNodes, maxIterationsWithoutPath);
+});
+
+    </script>
+</body>
+</html>
