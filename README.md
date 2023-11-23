@@ -30,6 +30,6 @@ poetry install conda
 # Future Directions
 
 - Comparing this to a million similar small deviations of MCST-like loops to see what makes Q so special (if anything)
-- Implementing this graph pathfinding on a dataset of recipes derived from the incredibly solid game [Another Farm Roguelike](https://store.steampowered.com/app/2116850/Another_Farm_Roguelike/) game which is just itching to be solved by ML (thus proving out the power of recipes for all time)
+- Implementing this graph pathfinding on a dataset of recipes derived from the incredibly solid game [Another Farm Roguelike](https://store.steampowered.com/app/2116850/Another_Farm_Roguelike/) which is just itching to be solved by ML (thus proving out the power of recipes for all time)
 - [Becoming the Very Best, Like No One Ever Was](https://github.com/PWhiddy/PokemonRedExperiments)
 
