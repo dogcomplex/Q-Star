@@ -1,4 +1,4 @@
-# Q-Star
+# Q-Star (Q*)
 The secretest sauce combining Q-Learning and A*
 
 # Installation
@@ -26,6 +26,9 @@ poetry install conda
 - [Eureka Team](https://github.com/eureka-research/Eureka) for making it evidently clear how simple this stuff can be (ITS A LOOP), how close we are to the edge, and how plausibly one small tweak in architecture setup might be enough for the next breakthrough.
 - [Voyager](https://github.com/MineDojo/Voyager/blob/main/skill_library/README.md), [Jarvis-1](https://github.com/CraftJarvis/JARVIS-1), and [PokemonRedExperiments](https://github.com/PWhiddy/PokemonRedExperiments) for pushing development where it's truly needed
 - [Lara Croft Tomb Raider](https://www.youtube.com/watch?v=0wTf_bbkW2U&ab_channel=FoxMaster) for making me *believe*
+
+- 
+- [DeepLearningFlappyBird](https://github.com/yenchenlin/DeepLearningFlappyBird) for an honest implementation of Q learning which looks pretty solid (will checkout soon)
 
 # Future Directions
 
