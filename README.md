@@ -1,6 +1,11 @@
 # Q-Star (Q*)
 The secretest AI sauce combining Q-Learning and A*
 
+Try it out:
+[Q* Grid](https://htmlpreview.github.io/?https://github.com/dogcomplex/Q-Star/blob/main/q_star_grid.html) for cute grid version
+
+[Q* Graph](https://htmlpreview.github.io/?https://github.com/dogcomplex/Q-Star/blob/main/q_star_graph.html) for vaguely-useful graph version template
+
 # Installation
 ```
 conda install npm=9.1.1
@@ -11,11 +16,6 @@ python install pyenv
 pyenv install poetry
 poetry install conda
 ```
-
-
-[Q* Graph](https://htmlpreview.github.io/?https://github.com/dogcomplex/Q-Star/blob/main/q_star_graph.html)
-
-[Q* Grid](https://htmlpreview.github.io/?https://github.com/dogcomplex/Q-Star/blob/main/q_star_grid.html)
 
 # Acknowledgements
 
