@@ -1,5 +1,5 @@
 # Q-Star (Q*)
-The secretest sauce combining Q-Learning and A*
+The secretest AI sauce combining Q-Learning and A*
 
 # Installation
 ```
