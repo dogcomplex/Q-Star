@@ -25,7 +25,7 @@ poetry install conda
 (And also not showing me how to properly integrate it into my IDE with latest tooling, which I'm sure exists)
 - [Eureka Team](https://github.com/eureka-research/Eureka) for making it evidently clear how simple this stuff can be (ITS A LOOP), how close we are to the edge, and how plausible one small tweak in architecture setup might be enough for the next breakthrough.
 - [Voyager](https://github.com/MineDojo/Voyager/blob/main/skill_library/README.md), [Jarvis-1](https://github.com/CraftJarvis/JARVIS-1), and [PokemonRedExperiments](https://github.com/PWhiddy/PokemonRedExperiments) for pushing development where it's truly needed
-- [Lara Croft Tomb Raider](https://www.youtube.com/watch?v=0wTf_bbkW2U&ab_channel=FoxMaster) for making me /believe/
+- [Lara Croft Tomb Raider](https://www.youtube.com/watch?v=0wTf_bbkW2U&ab_channel=FoxMaster) for making me *believe*
 
 # Future Directions
 
