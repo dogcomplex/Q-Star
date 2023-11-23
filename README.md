@@ -3,7 +3,7 @@ The secretest sauce combining Q-Learning and A*
 
 # Installation
 ```
-conda install npm=1.2.9
+conda install npm=9.1.1
 sudo npm install pip
 pip install python
 mkdir sorry
@@ -11,6 +11,11 @@ python install pyenv
 pyenv install poetry
 poetry install conda
 ```
+
+
+[Q* Graph](https://htmlpreview.github.io/?https://github.com/dogcomplex/Q-Star/blob/main/q_star_graph.html)
+
+[Q* Grid](https://htmlpreview.github.io/?https://github.com/dogcomplex/Q-Star/blob/main/q_star_grid.html)
 
 # Acknowledgements
 
